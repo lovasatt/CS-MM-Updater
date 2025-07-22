@@ -1,69 +1,98 @@
 #!/bin/bash
 # @Author: Kenny Lindelof <contact@kennyl.tv>
 # @Date:   2017-04-29 17:09:32
-# @Last Modified by:   kennyL
-# @Last Modified time: 2017-04-29 23:49:11
-# @Repo: https://github.com/kennyLtv/SourceModUpdater
-DIRS=("$HOME/s1" "$HOME/s2")
-WORKING="UD_working"
-
+# @Last Modified by:   lovasatt
+# @Last Modified time: 2025-07-22 20:10:00
+# @Repo: https://github.com/lovasatt/CS-MM-Updater
 #
-# Please be sure to have the folling installed
-# CuRL 
-# wget
-# 
+####################################################################################################
+# Set Folders
+WORKING="cs_mm_files"  # This is the directory of the install or update files
+CS2_WORKING_DIR="/usr/local/steam/csgo/game/csgo"  # This is the directory path of "gameinfo.gi" file
+####################################################################################################
+
+# Set Colors
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+# Metamod installation check
+GI_FILE="${CS2_WORKING_DIR}/gameinfo.gi"
+METAMOD=`cat "$CS2_WORKING_DIR/gameinfo.gi" | grep -oh metamod | wc -w`
+
+if [ ! -f "${GI_FILE}" ]; then
+    echo "Error: ${GI_FILE} does not exist in the specified directory."
+    exit 1
+fi
+if [[ $METAMOD -eq 1 ]]
+    then
+        echo -e "${GREEN}'Game    csgo/addons/metamod'${NC} already exists in a gameinfo.gi"
+    else
+        sed -ie '/Game_LowViolence/a\\n\t\t\tGame    csgo/addons/metamod' "$CS2_WORKING_DIR/gameinfo.gi"
+        echo -e "${YELLOW}gameinfo.gi has been modified successfully.${NC}"
+fi
+
+# Please be sure to have the folling installed.
+# CuRL wget unzip
+# Check and install packages if missing.
+pkgs='curl wget unzip'
+install=false
+for pkg in $pkgs; do
+  status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
+  if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
+    install=true
+    break
+  fi
+done
+if "$install"; then
+  sudo apt install $pkgs
+fi
 
 # Working Directory For The Script
-mkdir $WORKING
+mkdir -p $WORKING
 cd $WORKING
 
-# Getting the latest SourceMod 
-# 
-# SM_CURRENT Give the current version of SourceMod 
-echo Retrieving Current SourceMod
-echo
-SM_CURRENT=`curl -s http://www.sourcemod.net/smdrop/1.8/sourcemod-latest-linux`
-#Downloads the Current SM Version.
-wget -q "http://www.sourcemod.net/smdrop/1.8/$SM_CURRENT"
-tar -zxf $SM_CURRENT
+# Getting the latest MetaMod
+MM_CURRENT=`curl -s https://mms.alliedmods.net/mmsdrop/2.0/mmsource-latest-linux`
+MM_LOCAL=`ls mmsource-*.tar.gz`
 
-echo Determining the current Meta Mod Source Version
-echo
-## Determining the current MetaMod Version
-latestVer=$(curl -s 'http://metamodsource.net/mmsdrop/1.10/' |
-   grep -oP 'mmsource-[0-9].[0-9][0-9].[0-9]-git[0-9][0-9][0-9]+' |
-   sort -t. -rn -k1,1 -k2,2 -k3,3 | head -1)
+# Downloads the Current MM Version
+if [[ $MM_CURRENT = $MM_LOCAL ]]
+    then
+        echo -e "The latest metamod is already installed."
+    else
+        echo -e "${YELLOW}Downloading the new version of metamod...${NC}"
+        rm -fr $MM_LOCAL
+        wget -q "https://mms.alliedmods.net/mmsdrop/2.0/$MM_CURRENT"
+        tar -xf $MM_CURRENT
+        echo "Done."
+fi
 
-echo Downloading Meta Mod $latestVer
-echo
-## Getting the latest MetaMod 
-wget -q "http://metamodsource.net/mmsdrop/1.10/${latestVer}-linux.tar.gz"
-#Extracting MetaMod Source 
-tar -zxf ${latestVer}-linux.tar.gz
+# Determining the current CounterStrikeSharp Version
+latestVer=$(curl -s https://api.github.com/repos/roflmuffin/CounterStrikeSharp/releases/latest |
+    grep browser_download_url | grep -oP 'counterstrikesharp-with-runtime-linux-[0-9].[0-9].[0-9][0-9][0-9].zip' |
+    sed -r 's/counterstrikesharp-with-runtime-linux-//;s/.zip//')
+latestFile=$(curl -s https://api.github.com/repos/roflmuffin/CounterStrikeSharp/releases/latest |
+    grep browser_download_url | grep -oP 'counterstrikesharp-with-runtime-linux-[0-9].[0-9].[0-9][0-9][0-9].zip')
+CS_LOCAL=`ls counterstrikesharp-with-runtime-linux-*.zip`
 
-echo Removing Extra Files
-echo
-# Removing Unwanted Files
-rm -fr $SM_CURRENT addons/sourcemod/configs ${latestVer}-linux.tar.gz
+# Getting the latest CounterStrikeSharp
+if [[ $latestFile = $CS_LOCAL ]]
+    then
+        echo -e "The latest CounterStrikeSharp is already installed."
+    else
+        echo -e "${YELLOW}Downloading the new version of CounterStrikeSharp...${NC}"
+        rm -fr $CS_LOCAL
+        wget -q "https://github.com/roflmuffin/CounterStrikeSharp/releases/download/v${latestVer}/counterstrikesharp-with-runtime-linux-${latestVer}.zip"
+        unzip -qo $latestFile
+        echo "Done."
+fi
 
+# Copy files to gaming directory
+cp addons/ $CS2_WORKING_DIR/ -R
 cd ../
 
-echo Moving Files To Directories
 echo
-for i in "${DIRS[@]}"
-	do
-		cp -R $WORKING/addons $i
-		cp -R $WORKING/cfg $i
-	done;
-
-rm -fr $WORKING
-
-echo
-echo
-echo Looks like its completed 
-echo
-echo Source Mod Version: $SM_CURRENT 
-echo Meta Mod Version: $latestVer	 	
-echo
-echo Follow Me On Twitter: @kennyLtv 			
+echo -e "MetaMod Version: ${GREEN}$MM_CURRENT${NC}"
+echo -e "CounterStrikeSharp Version: ${GREEN}$latestVer${NC}"
 echo
