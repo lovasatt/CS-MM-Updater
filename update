@@ -122,7 +122,7 @@ if [ -z "$MAM_URL" ]; then
     echo -e "${YELLOW}Warning: Could not fetch MultiAddonManager URL from GitHub. Skipping.${NC}"
 else
     MA_latestFile=$(basename "$MAM_URL")
-    MA_latestVer=$(echo "$MA_latestFile" | sed -r 's/MultiAddonManager-v//; s/-[^\.]+\.tar\.gz//')
+    MA_latestVer=$(echo "$MA_latestFile" | sed -r 's/MultiAddonManager-v?//; s/-[^\.]+\.tar\.gz//')
     MA_LOCAL=$(ls MultiAddonManager-*-steamrt4.tar.gz 2>/dev/null | head -n 1)
 
 # Getting the latest MultiAddonManager
@@ -156,7 +156,7 @@ echo
 # =========================
 [ -z "$MM_CURRENT" ] && MM_CURRENT=$(ls mmsource-*-linux.tar.gz 2>/dev/null | head -n 1)
 [ -z "$latestVer" ]  && latestVer=$(ls counterstrikesharp-with-runtime-linux-*.zip 2>/dev/null | head -n 1 | sed -r 's/counterstrikesharp-with-runtime-linux-//; s/\.zip//')
-[ -z "$MA_latestVer" ] && MA_latestVer=$(ls MultiAddonManager-*-steamrt4.tar.gz 2>/dev/null | head -n 1 | sed -r 's/MultiAddonManager-v//; s/-[^\.]+\.tar\.gz//')
+[ -z "$MA_latestVer" ] && MA_latestVer=$(ls MultiAddonManager-*-steamrt4.tar.gz 2>/dev/null | head -n 1 | sed -r 's/MultiAddonManager-v?//; s/-[^\.]+\.tar\.gz//')
 
 JSON_FILE="$(dirname "$(dirname "$(dirname "$CS2_WORKING_DIR")")")/versions.json"
 
